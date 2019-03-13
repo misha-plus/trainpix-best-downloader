@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -25,7 +27,7 @@ func isFileExist(path string) (bool, error) {
 	return true, nil
 }
 
-func getPhotosURLs() []string {
+func getPhotosURLs(pages int) []string {
 	c := colly.NewCollector()
 	c.Async = false
 	c.UserAgent = "ImagesCrawler"
@@ -60,23 +62,28 @@ func getPhotosURLs() []string {
 		result = append(result, fullImagePath)
 	})
 
-	i := 0
-
-	c.OnHTML(".pages a[href].pg", func(e *colly.HTMLElement) {
-		link := e.Attr("href")
-		_ = link
-
-		if i < 0 {
-			c.Visit(e.Request.AbsoluteURL(link))
-		}
-		i++
-	})
-
 	c.OnRequest(func(r *colly.Request) {
 		log.Println("Visiting", r.URL.String())
 	})
 
-	c.Visit("https://trainpix.org/voting.php?show=results")
+	c.OnScraped(func(r *colly.Response) {
+		log.Printf("Scraped %s\n", r.Request.URL.String())
+	})
+
+	for pg := 0; pg < pages; pg++ {
+		url := fmt.Sprintf(
+			"https://trainpix.org/voting.php?show=results&st=%d",
+			pg*10,
+		)
+
+		countBefore := len(result)
+		c.Visit(url)
+		countAfter := len(result)
+		if countBefore == countAfter {
+			break
+		}
+		log.Printf("Fetched %d pictures URLs", countAfter-countBefore)
+	}
 
 	return result
 }
@@ -154,9 +161,21 @@ func downloadPhoto(url string) (bool, error) {
 }
 
 func main() {
+	pages := flag.Int(
+		"pages",
+		10,
+		"\"-pages 10\" will take pictures from 10 first pages,"+
+			" if \"pages\" will be -1 then crawler will take all pages",
+	)
+	flag.Parse()
 	log.Print("Started")
-	photosURLs := getPhotosURLs()
-	for i, photoURL := range photosURLs {
+	log.Printf("Using pages = %d", *pages)
+	if *pages < 0 {
+		*pages = math.MaxUint32 >> 1
+	}
+
+	photosURLs := getPhotosURLs(*pages)
+	for _, photoURL := range photosURLs {
 		fmt.Println(photoURL)
 		isAlreadyDownloaded, err := downloadPhoto(photoURL)
 		if err != nil {
@@ -168,9 +187,6 @@ func main() {
 		}
 		if !isAlreadyDownloaded {
 			time.Sleep(time.Second)
-		}
-		if i > 2 {
-			break
 		}
 	}
 	log.Println("All done")

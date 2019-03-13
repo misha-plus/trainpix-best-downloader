@@ -13,4 +13,5 @@
 
 *.db
 
-vendor
+tmp
+results

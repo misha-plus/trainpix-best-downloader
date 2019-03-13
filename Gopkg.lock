@@ -159,9 +159,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/gocolly/colly",
-    "golang.org/x/text/unicode/cldr",
-  ]
+  input-imports = ["github.com/gocolly/colly"]
   solver-name = "gps-cdcl"
   solver-version = 1
