@@ -89,7 +89,7 @@ func getPhotosURLs(pages int) []string {
 }
 
 // If the photo is alrady downloaded the function will return true orherwise false
-func downloadPhoto(url string) (bool, error) {
+func downloadPhoto(url string, dir string) (bool, error) {
 	re, err := regexp.Compile("/(\\d+)\\.jpg$")
 	if err != nil {
 		log.Fatalf("Can't compile RexExp: %v", err)
@@ -99,7 +99,7 @@ func downloadPhoto(url string) (bool, error) {
 		return false, fmt.Errorf("can't extract photo ID from '%v'", url)
 	}
 
-	photoPath := filepath.Join("results", fmt.Sprintf("%s.jpg", match[1]))
+	photoPath := filepath.Join(dir, fmt.Sprintf("%s.jpg", match[1]))
 	{
 		exists, err := isFileExist(photoPath)
 		if err != nil {
@@ -122,7 +122,7 @@ func downloadPhoto(url string) (bool, error) {
 	}
 	defer resp.Body.Close()
 
-	tempPhotoPath := filepath.Join("results", fmt.Sprintf("%s.tmp.jpg", match[1]))
+	tempPhotoPath := filepath.Join(dir, fmt.Sprintf("%s.tmp.jpg", match[1]))
 	{
 		exist, err := isFileExist(tempPhotoPath)
 		if err != nil {
@@ -167,9 +167,18 @@ func main() {
 		"\"-pages 10\" will take pictures from 10 first pages,"+
 			" if \"pages\" will be -1 then crawler will take all pages",
 	)
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	dir := flag.String(
+		"dir",
+		cwd,
+		"where we should save pictures",
+	)
 	flag.Parse()
 	log.Print("Started")
-	log.Printf("Using pages = %d", *pages)
+	log.Printf("Using pages = %d, dir = %s", *pages, *dir)
 	if *pages < 0 {
 		*pages = math.MaxUint32 >> 1
 	}
@@ -177,7 +186,7 @@ func main() {
 	photosURLs := getPhotosURLs(*pages)
 	for _, photoURL := range photosURLs {
 		fmt.Println(photoURL)
-		isAlreadyDownloaded, err := downloadPhoto(photoURL)
+		isAlreadyDownloaded, err := downloadPhoto(photoURL, *dir)
 		if err != nil {
 			log.Printf(
 				"[Warning] Error while donloading a photo %s: %v",
