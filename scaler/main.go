@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -59,7 +60,8 @@ func main() {
 			continue
 		}
 
-		outjpg2000path := filepath.Join(*out, file.Name()) + ".15opj.jp2"
+		name := strings.TrimSuffix(file.Name(), path.Ext(file.Name()))
+		outjpg2000path := filepath.Join(*out, name) + ".jp2"
 		if ok, _ := isFileExist(outjpg2000path); ok {
 			log.Printf("File %s already upscaled", file.Name())
 			continue

@@ -89,7 +89,10 @@ func getPhotosURLs(pages int) []string {
 }
 
 // If the photo is alrady downloaded the function will return true orherwise false
-func downloadPhoto(url string, dir string) (bool, error) {
+func downloadPhoto(
+	url, dir, upscalesDir string,
+	allowHorizontal, allowVertical bool,
+) (bool, error) {
 	re, err := regexp.Compile("/(\\d+)\\.jpg$")
 	if err != nil {
 		log.Fatalf("Can't compile RexExp: %v", err)
@@ -98,16 +101,26 @@ func downloadPhoto(url string, dir string) (bool, error) {
 	if match == nil {
 		return false, fmt.Errorf("can't extract photo ID from '%v'", url)
 	}
+	photoID := match[1]
 
-	photoPath := filepath.Join(dir, fmt.Sprintf("%s.jpg", match[1]))
+	photoPath := filepath.Join(dir, fmt.Sprintf("%s.jpg", photoID))
 	{
 		exists, err := isFileExist(photoPath)
 		if err != nil {
 			return false, fmt.Errorf("can't look to file: %v", err)
 		}
 		if exists {
-			log.Printf("Photo %s already downloaded", match[1])
+			log.Printf("Photo %s already downloaded", photoID)
 			return true, nil
+		}
+
+		if upscalesDir != "" {
+			upscaledPhotoPath := filepath.Join(upscalesDir, fmt.Sprintf("%s.jp2", photoID))
+			upscaledExists, _ := isFileExist(upscaledPhotoPath)
+			if upscaledExists {
+				log.Printf("Upscaled photo %s already present", photoID)
+				return true, nil
+			}
 		}
 	}
 
@@ -122,7 +135,7 @@ func downloadPhoto(url string, dir string) (bool, error) {
 	}
 	defer resp.Body.Close()
 
-	tempPhotoPath := filepath.Join(dir, fmt.Sprintf("%s.tmp.jpg", match[1]))
+	tempPhotoPath := filepath.Join(dir, fmt.Sprintf("%s.tmp.jpg", photoID))
 	{
 		exist, err := isFileExist(tempPhotoPath)
 		if err != nil {
@@ -176,17 +189,49 @@ func main() {
 		cwd,
 		"where we should save pictures",
 	)
+	upscalesDir := flag.String(
+		"upscales",
+		"",
+		"directory where upscaled files stored. With this option you can "+
+			"delete downloaded images keeping only upscales",
+	)
+	allowHorizontal := flag.Bool(
+		"horiz",
+		true,
+		"allow download horizontal pictures? [-horiz=false], [-horiz=true]",
+	)
+	allowVertical := flag.Bool(
+		"vert",
+		false,
+		"allow download vertical pictures? [-vert=false], [-vert=true]",
+	)
 	flag.Parse()
+	if *allowHorizontal == false && *allowVertical == false {
+		log.Fatal("Can't start: vertical and horizontal photos are disallowed")
+	}
+
 	log.Print("Started")
 	log.Printf("Using pages = %d, dir = %s", *pages, *dir)
+	if *upscalesDir != "" {
+		log.Printf("Using upscales dir = %s", *upscalesDir)
+	} else {
+		log.Printf("Working without upscales dir")
+	}
+	log.Printf(
+		"<allow horizontal> = %v, <allow vertical> = %v",
+		*allowHorizontal, *allowVertical,
+	)
 	if *pages < 0 {
 		*pages = math.MaxUint32 >> 1
 	}
 
 	photosURLs := getPhotosURLs(*pages)
 	for _, photoURL := range photosURLs {
-		fmt.Println(photoURL)
-		isAlreadyDownloaded, err := downloadPhoto(photoURL, *dir)
+		log.Printf("Downloading %s", photoURL)
+		isAlreadyDownloaded, err := downloadPhoto(
+			photoURL, *dir, *upscalesDir,
+			*allowHorizontal, *allowVertical,
+		)
 		if err != nil {
 			log.Printf(
 				"[Warning] Error while donloading a photo %s: %v",
