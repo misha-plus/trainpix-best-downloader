@@ -36,3 +36,6 @@
 [[override]]
   name = "github.com/antchfx/htmlquery"
   revision = "db5c1236cbb43c58add1164a8b20d844683e537f"
+[[constraint]]
+  branch = "master"
+  name = "github.com/lmittmann/ppm"

@@ -87,6 +87,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:616d9454a212b864a12c805ac54855f04301080b0da4573cf1ec6a01ad60e56d"
+  name = "github.com/lmittmann/ppm"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5777950dc9dd73bbf79618c4bbb9a5f411774b92"
+
+[[projects]]
+  branch = "master"
   digest = "1:374ce4704830a7b9729d8798bcb4ac796f9c7bbb6903950ec55b71332caffe31"
   name = "github.com/saintfish/chardet"
   packages = ["."]
@@ -159,6 +167,9 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["github.com/gocolly/colly"]
+  input-imports = [
+    "github.com/gocolly/colly",
+    "github.com/lmittmann/ppm",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
