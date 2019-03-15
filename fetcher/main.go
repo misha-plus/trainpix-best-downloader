@@ -19,6 +19,8 @@ import (
 	"github.com/gocolly/colly"
 )
 
+const userAgent = "Trainpix-Wallpapers (https://github.com/misha-plus/trainpix-wallpapers)"
+
 func isFileExist(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -33,7 +35,7 @@ func isFileExist(path string) (bool, error) {
 func getPhotosURLs(pages int) []string {
 	c := colly.NewCollector()
 	c.Async = false
-	c.UserAgent = "ImagesCrawler"
+	c.UserAgent = userAgent
 	c.AllowedDomains = append(c.AllowedDomains, "trainpix.org")
 
 	err := c.Limit(&colly.LimitRule{
@@ -130,7 +132,7 @@ func downloadPhoto(
 	if err != nil {
 		return false, fmt.Errorf("can't do request: %v", err)
 	}
-	req.Header.Set("User-Agent", "ImagesCrawler")
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return true, fmt.Errorf("can't do request: %v", err)
