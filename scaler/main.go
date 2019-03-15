@@ -16,9 +16,11 @@ import (
 	"github.com/lmittmann/ppm"
 )
 
+// required
 const waifu2xmacCmd = "waifu2xmetal"
-const cjpegCmd = "/usr/local/opt/mozjpeg/bin/cjpeg"
 const opjCompressCmd = "opj_compress"
+
+const cjpegCmd = "/usr/local/opt/mozjpeg/bin/cjpeg"
 
 func isFileExist(path string) (bool, error) {
 	_, err := os.Stat(path)

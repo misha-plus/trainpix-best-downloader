@@ -19,7 +19,8 @@ import (
 	"github.com/gocolly/colly"
 )
 
-const userAgent = "Trainpix-Wallpapers (https://github.com/misha-plus/trainpix-wallpapers)"
+const userAgent = "Trainpix-Wallpapers " +
+	"(https://github.com/misha-plus/trainpix-wallpapers)"
 
 func isFileExist(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -119,7 +120,9 @@ func downloadPhoto(
 		}
 
 		if upscalesDir != "" {
-			upscaledPhotoPath := filepath.Join(upscalesDir, fmt.Sprintf("%s.jp2", photoID))
+			upscaledPhotoPath := filepath.Join(
+				upscalesDir, fmt.Sprintf("%s.jp2", photoID),
+			)
 			upscaledExists, _ := isFileExist(upscaledPhotoPath)
 			if upscaledExists {
 				log.Printf("Upscaled photo %s already present", photoID)
