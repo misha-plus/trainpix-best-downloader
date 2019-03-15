@@ -13,7 +13,7 @@ To intstall it on Mac run `brew install openjpeg`
 ```
 Usage of fetcher:
   -dir string
-    	where we should save pictures (default "/Users/michael/gopath/src/traipix-best-downloader")
+    	where we should save pictures (default is current working directory)
   -horiz
     	allow download horizontal pictures? [-horiz=false], [-horiz=true] (default true)
   -pages int
