@@ -13,7 +13,7 @@ To intstall it on Mac run `brew install openjpeg`
 ```
 Usage of fetcher:
   -dir string
-    	where we should save pictures (default "/Users/michael/gopath/src/traipix-best-downloader")
+    	where we should save pictures (default is current working directory)
   -horiz
     	allow download horizontal pictures? [-horiz=false], [-horiz=true] (default true)
   -pages int
@@ -33,4 +33,4 @@ You should set constants to appropriate in file `scaler/main.go` for `waifu2xmac
 
 `go run scaler/main.go -i pathToDownloadedPicsDir -o pathToUpscaledPicsDir`
 
-This will take pictures from `pathToDownloadedPicsDir` directory, upscale them to 2x and convert pictures to JPEG2000 format and save it to `pathToUpscaledPicsDir` directory.
+This will take pictures from `pathToDownloadedPicsDir` directory, upscale them to 2x and convert pictures to JPEG2000 format and save it to `pathToUpscaledPicsDir` directory. If some image already upscaled then upscaler will skip it.
