@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"image/jpeg"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -88,11 +91,10 @@ func getPhotosURLs(pages int) []string {
 	return result
 }
 
-// If the photo is alrady downloaded the function will return true orherwise false
 func downloadPhoto(
 	url, dir, upscalesDir string,
 	allowHorizontal, allowVertical bool,
-) (bool, error) {
+) (needWait bool, theError error) {
 	re, err := regexp.Compile("/(\\d+)\\.jpg$")
 	if err != nil {
 		log.Fatalf("Can't compile RexExp: %v", err)
@@ -111,7 +113,7 @@ func downloadPhoto(
 		}
 		if exists {
 			log.Printf("Photo %s already downloaded", photoID)
-			return true, nil
+			return false, nil
 		}
 
 		if upscalesDir != "" {
@@ -119,7 +121,7 @@ func downloadPhoto(
 			upscaledExists, _ := isFileExist(upscaledPhotoPath)
 			if upscaledExists {
 				log.Printf("Upscaled photo %s already present", photoID)
-				return true, nil
+				return false, nil
 			}
 		}
 	}
@@ -131,7 +133,7 @@ func downloadPhoto(
 	req.Header.Set("User-Agent", "ImagesCrawler")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("can't do request: %v", err)
+		return true, fmt.Errorf("can't do request: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -139,38 +141,58 @@ func downloadPhoto(
 	{
 		exist, err := isFileExist(tempPhotoPath)
 		if err != nil {
-			return false, fmt.Errorf("can't look to temp file: %v", err)
+			return true, fmt.Errorf("can't look to temp file: %v", err)
 		}
 		if exist {
 			err := os.Remove(tempPhotoPath)
 			if err != nil {
-				return false, fmt.Errorf("can't remove temp file: %v", err)
+				return true, fmt.Errorf("can't remove temp file: %v", err)
 			}
+		}
+	}
+
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return true, fmt.Errorf("unable to read a photo: %v", err)
+	}
+
+	{
+		img, err := jpeg.DecodeConfig(bytes.NewReader(buf))
+		if err != nil {
+			return true, fmt.Errorf("can't take photo dimensions: %v", err)
+		}
+		if img.Width > img.Height && !allowHorizontal {
+			log.Printf("Ignoring horizontal photo %s", photoID)
+			return true, nil
+		}
+		if img.Width < img.Height && !allowVertical {
+			log.Printf("Ignoring vertical photo %s", photoID)
+			return true, nil
 		}
 	}
 
 	file, err := os.Create(tempPhotoPath)
 	if err != nil {
-		return false, fmt.Errorf("unable to create a file: %v", err)
+		return true, fmt.Errorf("unable to create a file: %v", err)
 	}
 	defer file.Close()
 	defer os.Remove(tempPhotoPath)
 
-	_, err = io.Copy(file, resp.Body)
+	_, err = io.Copy(file, bytes.NewReader(buf))
 	if err != nil {
-		return false, fmt.Errorf("unable to write a photo: %v", err)
+		return true, fmt.Errorf("unable to write a photo: %v", err)
 	}
 	err = file.Close()
 	if err != nil {
-		return false, fmt.Errorf("unable to close photo file: %v", err)
+		return true, fmt.Errorf("unable to close photo file: %v", err)
 	}
 
 	err = os.Rename(tempPhotoPath, photoPath)
 	if err != nil {
-		return false, fmt.Errorf("can't rename photo file: %v", err)
+		return true, fmt.Errorf("can't rename photo file: %v", err)
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func main() {
@@ -228,7 +250,7 @@ func main() {
 	photosURLs := getPhotosURLs(*pages)
 	for _, photoURL := range photosURLs {
 		log.Printf("Downloading %s", photoURL)
-		isAlreadyDownloaded, err := downloadPhoto(
+		needWait, err := downloadPhoto(
 			photoURL, *dir, *upscalesDir,
 			*allowHorizontal, *allowVertical,
 		)
@@ -239,7 +261,7 @@ func main() {
 				err,
 			)
 		}
-		if !isAlreadyDownloaded {
+		if needWait {
 			time.Sleep(time.Second)
 		}
 	}
